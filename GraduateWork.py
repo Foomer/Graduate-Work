@@ -2,6 +2,8 @@ import requests
 import logging
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
 from decouple import config
 
 API_TOKEN = config('API_TOKEN')
@@ -24,11 +26,7 @@ async def start_command(message: types.Message):
 @dp.message_handler(commands=['stats'])
 async def stats_command(message: types.Message):
     
-    await message.reply("привет чтобы узнать  напишы свой никнейм игрока")
-    
-
-    
-
+    await message.answer("Привет! Для получения статистики Fortnite, напишите никнейм.")
     
 
 @dp.message_handler()
@@ -43,25 +41,41 @@ async def userName(message: types.Message):
 
     response = requests.get(url, headers=headers).json()
     
-    answer = (f"Player Name: {response['name']}\n"
-            f"Account Level: {response['account']['level']}\n"
-            f"Account Progress: {response['account']['progress_pct']}%\n"
-            "Seasonal Stats:\n")
+    if response.get('code') == 'PRIVATE_ACCOUNT':
+        await message.answer('Ошибка: данный аккаунт является приватным')
+        return
+    
+    
+    try:
+       if not response['result']:
+            await message.answer(f"{response['error']}")
+            print(response)
+            return
+    except KeyError:
+        await message.answer('Ошибка при получении статистики')
+        print(response)
+        return
+    
+    
+    
+    answer = (f"Имя игрока: {response['name']}\n"
+            f"Уровень: {response['account']['level']}\n"
+            f"Сезонная статистика:\n")
 
     for season in response['accountLevelHistory']:
         answer += (f"  Season {season['season']}: "
-                f"Level {season['level']}, "
-                f"Progress {season['process_pct']}%\n")
+                f"Уровень {season['level']}\n")
 
-    answer += "\nGlobal Stats:\n"
+    answer += "\nГлобальная статистика:\n"
 
     for mode, stats in response['global_stats'].items():
         answer += (f"  {mode.title()} - "
-                f"Placetop1: {stats['placetop1']}, "
+                f"1 Место: {stats['placetop1']}, "
                 f"K/D: {stats['kd']}, "
-                f"Winrate: {stats['winrate']}%\n")
+                f"Процент побед: {stats['winrate']}%\n")
 
-    await message.answer(answer)
+    await message.answer(answer, disable_notification=True)
+    return
         
 
 if __name__ == '__main__':
