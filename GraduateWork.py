@@ -29,6 +29,7 @@ async def stats_command(message: types.Message):
     await message.answer("Привет! Для получения статистики Fortnite, напишите никнейм.")
     
 
+
 @dp.message_handler()
 async def userName(message: types.Message):
     
@@ -45,6 +46,7 @@ async def userName(message: types.Message):
         await message.answer('Ошибка: данный аккаунт является приватным')
         return
     
+    print('Hello')
     
     try:
        if not response['result']:
